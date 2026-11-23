@@ -1,1 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Магазин кроссовок</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #1a1a1a);
+            --text-color: var(--tg-theme-text-color, #ffffff);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            --button-color: var(--tg-theme-button-color, #3390ec);
+            --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --hint-color: var(--tg-theme-hint-color, #888888);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            padding: 20px 16px;
+            background: var(--secondary-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--hint-color);
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filters::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--secondary-bg);
+            border: none;
+            border-radius: 20px;
+            color: var(--text-color);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--button-color);
+            color: var(--button-text);
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 16px 16px;
+        }
+
+        .product-card {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            padding: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .product-card:active {
+            transform: scale(0.98);
+        }
+
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--button-color);
+            margin-bottom: 8px;
+        }
+
+        .add-to-cart {
+            width: 100%;
+            padding: 10px;
+            background: var(--button-color);
+            color: var(--button-text);
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .add-to-cart:active {
+            opacity: 0.8;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .counter button {
+            width: 32px;
+            height: 32px;
+            background: var(--button-color);
+            color: var(--button-text);
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .counter button:active {
+            opacity: 0.8;
+        }
+
+        .counter span {
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+
+        .cart-button {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            padding: 16px;
+            background: var(--button-color);
+            color: var(--button-text);
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .cart-button:active {
+            transform: scale(0.98);
+        }
+
+        .cart-button.hidden {
+            transform: translateY(120%);
+        }
+
+        .cart-badge {
+            background: var(--button-text);
+            color: var(--button-color);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: flex-end;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-height: 80vh;
+            background: var(--secondary-bg);
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .close-modal {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-items {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-color);
+            border-radius: 12px;
+        }
+
+        .cart-item-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-price {
+            font-size: 14px;
+            color: var(--hint-color);
+        }
+
+        .cart-item-quantity {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--button-color);
+        }
+
+        .cart-total {
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .cart-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--button-color);
+            color: var(--button-text);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .checkout-btn:active {
+            opacity: 0.8;
+        }
+
+        .empty-cart {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--hint-color);
+        }
+
+        .empty-cart-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👟 Sneaker Store</h1>
+        <p id="greeting">Добро пожаловать!</p>
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" data-category="all">Все</button>
+        <button class="filter-btn" data-category="hits">Хиты</button>
+        <button class="filter-btn" data-category="new">Новинки</button>
+        <button class="filter-btn" data-category="sale">Скидки</button>
+    </div>
+
+    <div class="products" id="products"></div>
+
+    <button class="cart-button hidden" id="cartButton">
+        <span>🛒 Корзина</span>
+        <span class="cart-badge" id="cartBadge">0 • 0 ₽</span>
+    </button>
+
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Корзина</h2>
+                <button class="close-modal" id="closeModal">✕</button>
+            </div>
+            <div id="cartItemsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            
+            const user = tg.initDataUnsafe?.user;
+            if (user && user.first_name) {
+                document.getElementById('greeting').textContent = `Привет, ${user.first_name}!`;
+            }
+        }
+
+        const products = [
+            { id: 1, name: 'Nike Air Max', price: 12990, category: 'hits', emoji: '👟' },
+            { id: 2, name: 'Adidas Ultra Boost', price: 14990, category: 'new', emoji: '👟' },
+            { id: 3, name: 'Puma RS-X', price: 9990, category: 'sale', emoji: '👟' },
+            { id: 4, name: 'New Balance 574', price: 11990, category: 'hits', emoji: '👟' },
+            { id: 5, name: 'Reebok Classic', price: 7990, category: 'sale', emoji: '👟' },
+            { id: 6, name: 'Converse Chuck', price: 5990, category: 'new', emoji: '👟' }
+        ];
+
+        let cart = {};
+        let currentCategory = 'all';
+
+        function renderProducts() {
+            const container = document.getElementById('products');
+            const filtered = currentCategory === 'all' 
+                ? products 
+                : products.filter(p => p.category === currentCategory);
+            
+            container.innerHTML = filtered.map(product => `
+                <div class="product-card">
+                    <div class="product-image">${product.emoji}</div>
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">${product.price.toLocaleString('ru-RU')} ₽</div>
+                    <div id="product-${product.id}">
+                        ${cart[product.id] 
+                            ? `<div class="counter">
+                                <button onclick="changeQuantity(${product.id}, -1)">−</button>
+                                <span>${cart[product.id]}</span>
+                                <button onclick="changeQuantity(${product.id}, 1)">+</button>
+                               </div>`
+                            : `<button class="add-to-cart" onclick="addToCart(${product.id})">В корзину</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(productId) {
+            cart[productId] = 1;
+            updateProduct(productId);
+            updateCartButton();
+        }
+
+        function changeQuantity(productId, delta) {
+            cart[productId] = (cart[productId] || 0) + delta;
+            if (cart[productId] <= 0) {
+                delete cart[productId];
+            }
+            updateProduct(productId);
+            updateCartButton();
+        }
+
+        function updateProduct(productId) {
+            const container = document.getElementById(`product-${productId}`);
+            if (cart[productId]) {
+                container.innerHTML = `
+                    <div class="counter">
+                        <button onclick="changeQuantity(${productId}, -1)">−</button>
+                        <span>${cart[productId]}</span>
+                        <button onclick="changeQuantity(${productId}, 1)">+</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<button class="add-to-cart" onclick="addToCart(${productId})">В корзину</button>`;
+            }
+        }
+
+        function updateCartButton() {
+            const button = document.getElementById('cartButton');
+            const badge = document.getElementById('cartBadge');
+            
+            const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+            const totalPrice = Object.entries(cart).reduce((sum, [id, qty]) => {
+                const product = products.find(p => p.id == id);
+                return sum + (product.price * qty);
+            }, 0);
+            
+            if (totalItems > 0) {
+                button.classList.remove('hidden');
+                badge.textContent = `${totalItems} • ${totalPrice.toLocaleString('ru-RU')} ₽`;
+            } else {
+                button.classList.add('hidden');
+            }
+        }
+
+        function openCart() {
+            const modal = document.getElementById('cartModal');
+            const container = document.getElementById('cartItemsContainer');
+            
+            const cartEntries = Object.entries(cart);
+            
+            if (cartEntries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">🛒</div>
+                        <p>Корзина пуста</p>
+                    </div>
+                `;
+            } else {
+                const totalPrice = cartEntries.reduce((sum, [id, qty]) => {
+                    const product = products.find(p => p.id == id);
+                    return sum + (product.price * qty);
+                }, 0);
+                
+                container.innerHTML = `
+                    <div class="cart-items">
+                        ${cartEntries.map(([id, qty]) => {
+                            const product = products.find(p => p.id == id);
+                            return `
+                                <div class="cart-item">
+                                    <div class="cart-item-image">${product.emoji}</div>
+                                    <div class="cart-item-info">
+                                        <div class="cart-item-name">${product.name}</div>
+                                        <div class="cart-item-price">${product.price.toLocaleString('ru-RU')} ₽</div>
+                                        <div class="cart-item-quantity">Количество: ${qty}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="cart-total">
+                        <div class="cart-total-row">
+                            <span>Итого:</span>
+                            <span>${totalPrice.toLocaleString('ru-RU')} ₽</span>
+                        </div>
+                    </div>
+                    <button class="checkout-btn" onclick="checkout()">Оформить заказ</button>
+                `;
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeCart() {
+            document.getElementById('cartModal').classList.remove('active');
+        }
+
+        function checkout() {
+            const orderText = Object.entries(cart).map(([id, qty]) => {
+                const product = products.find(p => p.id == id);
+                return `${product.name} × ${qty}`;
+            }).join('\n');
+            
+            const totalPrice = Object.entries(cart).reduce((sum, [id, qty]) => {
+                const product = products.find(p => p.id == id);
+                return sum + (product.price * qty);
+            }, 0);
+            
+            const message = `Ваш заказ:\n\n${orderText}\n\nИтого: ${totalPrice.toLocaleString('ru-RU')} ₽\n\nСпасибо за заказ! 🎉`;
+            
+            if (tg) {
+                tg.showAlert(message);
+            } else {
+                alert(message);
+            }
+            
+            cart = {};
+            updateCartButton();
+            closeCart();
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentCategory = btn.dataset.category;
+                renderProducts();
+            });
+        });
+
+        document.getElementById('cartButton').addEventListener('click', openCart);
+        document.getElementById('closeModal').addEventListener('click', closeCart);
+        
+        document.getElementById('cartModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cartModal') {
+                closeCart();
+            }
+        });
+
+        renderProducts();
+    </script>
+</body>
+</html>
